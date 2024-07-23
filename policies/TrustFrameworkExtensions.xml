@@ -1,0 +1,209 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<TrustFrameworkPolicy 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+  xmlns="http://schemas.microsoft.com/online/cpim/schemas/2013/06" 
+  PolicySchemaVersion="0.3.0.0" 
+  TenantId="authsignalb2c.onmicrosoft.com" 
+  PolicyId="B2C_1A_TrustFrameworkExtensions" 
+  PublicPolicyUri="http://authsignalb2c.onmicrosoft.com/B2C_1A_TrustFrameworkExtensions"
+  DeploymentMode="Development">
+  
+  <BasePolicy>
+    <TenantId>authsignalb2c.onmicrosoft.com</TenantId>
+    <PolicyId>B2C_1A_TrustFrameworkLocalization</PolicyId>
+  </BasePolicy>
+
+  <BuildingBlocks>
+
+    <ClaimsSchema>
+
+      <ClaimType Id="requestBody">
+        <DisplayName>requestBody</DisplayName>
+        <DataType>string</DataType>
+      </ClaimType>
+
+      <ClaimType Id="bearerToken">
+          <DisplayName>bearerToken</DisplayName>
+          <DataType>string</DataType>
+      </ClaimType>
+
+      <ClaimType Id="actionCode">
+          <DisplayName>actionCode</DisplayName>
+          <DataType>string</DataType>
+      </ClaimType>
+
+      <ClaimType Id="actionState">
+          <DisplayName>actionState</DisplayName>
+          <DataType>string</DataType>
+      </ClaimType>
+
+    </ClaimsSchema>
+
+    <ClaimsTransformations>
+
+      <ClaimsTransformation Id="authsignalInitAuthRequestBody" TransformationMethod="GenerateJson">
+        <InputClaims>
+            <InputClaim ClaimTypeReferenceId="objectId" TransformationClaimType="userId" />
+        </InputClaims>
+        <InputParameters>
+            <!-- NOTE: Change the action value here to the corresponding Authsignal action your user is performing. This may be signIn, signUp, manageSettings etc. -->
+            <InputParameter Id="action" DataType="string" Value="signIn" />
+            <InputParameter Id="redirectToSettings" DataType="boolean" Value="false" />
+        </InputParameters>
+        <OutputClaims>
+            <OutputClaim ClaimTypeReferenceId="requestBody" TransformationClaimType="outputClaim" />
+        </OutputClaims>
+      </ClaimsTransformation>
+
+    </ClaimsTransformations>
+
+  </BuildingBlocks>
+
+  <ClaimsProviders>
+    <ClaimsProvider>
+      <DisplayName>Local Account SignIn</DisplayName>
+
+      <TechnicalProfiles>
+
+         <TechnicalProfile Id="login-NonInteractive">
+          <Metadata>
+            <Item Key="client_id">d3c8578f-2b9a-490d-8d41-c252d61b11c9</Item>
+            <Item Key="IdTokenAudience">546a6f22-a2af-4eda-a4ef-4160a0198737</Item>
+          </Metadata>
+          <InputClaims>
+            <InputClaim ClaimTypeReferenceId="client_id" DefaultValue="d3c8578f-2b9a-490d-8d41-c252d61b11c9" />
+            <InputClaim ClaimTypeReferenceId="resource_id" PartnerClaimType="resource" DefaultValue="546a6f22-a2af-4eda-a4ef-4160a0198737" />
+          </InputClaims>
+        </TechnicalProfile>
+
+        <TechnicalProfile Id="REST-Authsignal-Connect-API">
+          <DisplayName>Authsignal Connect API</DisplayName>
+          <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.RestfulProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
+          <Metadata>
+              <Item Key="SendClaimsIn">Body</Item>
+              <Item Key="AuthenticationType">Basic</Item>
+              <Item Key="AllowInsecureAuthInProduction">false</Item>
+              <Item Key="ResolveJsonPathsInJsonTokens">true</Item>
+              <Item Key="ClaimUsedForRequestPayload">requestBody</Item>
+              <Item Key="DefaultUserMessageIfRequestFailed">Cannot process your request right now, please try again later.</Item>
+          </Metadata>
+          <CryptographicKeys>
+              <Key Id="BasicAuthenticationUsername" StorageReferenceId="B2C_1A_AuthsignalSecret" />
+              <Key Id="BasicAuthenticationPassword" StorageReferenceId="B2C_1A_AuthsignalSecret" />
+          </CryptographicKeys>
+          <InputClaims>
+              <InputClaim ClaimTypeReferenceId="requestBody" />
+          </InputClaims>
+        </TechnicalProfile>
+
+        <TechnicalProfile Id="authsignalOidcInitAuth">
+          <DisplayName>Authsignal OIDC Init Auth API</DisplayName>
+          <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.RestfulProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"/>
+          <!-- NOTE: Change the host name below -->
+          <Metadata>
+              <Item Key="ServiceUrl">https://eu-connect.authsignal.com/init-auth</Item>
+          </Metadata>
+          <InputClaimsTransformations>
+              <InputClaimsTransformation ReferenceId="authsignalInitAuthRequestBody"/>
+          </InputClaimsTransformations>
+          <InputClaims>
+              <InputClaim ClaimTypeReferenceId="requestBody"/>
+          </InputClaims>
+          <OutputClaims>
+              <OutputClaim ClaimTypeReferenceId="bearerToken" PartnerClaimType="token"/>
+          </OutputClaims>
+          <IncludeTechnicalProfile ReferenceId="REST-Authsignal-Connect-API"/>
+        </TechnicalProfile>
+
+        <TechnicalProfile Id="authsignalOidcAuth">
+          <DisplayName>Authsignal OIDC Authorize API</DisplayName>
+          <Protocol Name="OpenIdConnect" />
+          <Metadata>
+              <!-- NOTE: Change the host name and tenant id below -->
+              <Item Key="METADATA">https://eu-connect.authsignal.com/oidc/.well-known/openid-configuration</Item>
+              <Item Key="client_id">b38cfd4b-8a72-4fb9-8320-7fc78426f608</Item>
+              <Item Key="authorization_endpoint">https://eu-connect.authsignal.com/oidc/auth</Item>
+              <Item Key="AccessTokenEndpoint">https://eu-connect.authsignal.com/oidc/token</Item>
+              <Item Key="response_types">code</Item>
+              <Item Key="scope">openid</Item>
+              <Item Key="HttpBinding">POST</Item>
+              <Item Key="response_mode">form_post</Item>
+              <Item Key="token_endpoint_auth_method">client_secret_post</Item>
+              <Item Key="UsePolicyInRedirectUri">false</Item>
+              <Item Key="IncludeClaimResolvingInClaimsHandling">true</Item>
+              <Item Key="ResolveJsonPathsInJsonTokens">true</Item>
+          </Metadata>
+          <CryptographicKeys>
+              <Key Id="client_secret" StorageReferenceId="B2C_1A_AuthsignalSecret" />
+          </CryptographicKeys>
+          <InputClaims>
+              <InputClaim ClaimTypeReferenceId="bearerToken" PartnerClaimType="token" />
+          </InputClaims>
+          <OutputClaims>
+              <OutputClaim ClaimTypeReferenceId="actionCode" PartnerClaimType="action_code" />
+              <OutputClaim ClaimTypeReferenceId="actionState" PartnerClaimType="action_state" />
+          </OutputClaims>
+        </TechnicalProfile>
+
+      </TechnicalProfiles>
+      
+    </ClaimsProvider>
+  </ClaimsProviders>
+
+  <UserJourneys>
+    <UserJourney Id="AuthsignalSignUpOrSignIn">
+      <OrchestrationSteps>
+        <OrchestrationStep Order="1" Type="CombinedSignInAndSignUp" ContentDefinitionReferenceId="api.signuporsignin">
+          <ClaimsProviderSelections>
+            <ClaimsProviderSelection ValidationClaimsExchangeId="LocalAccountSigninEmailExchange" />
+          </ClaimsProviderSelections>
+          <ClaimsExchanges>
+            <ClaimsExchange Id="LocalAccountSigninEmailExchange" TechnicalProfileReferenceId="SelfAsserted-LocalAccountSignin-Email" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <OrchestrationStep Order="2" Type="ClaimsExchange">
+          <Preconditions>
+            <Precondition Type="ClaimsExist" ExecuteActionsIf="true">
+              <Value>objectId</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
+          </Preconditions>
+          <ClaimsExchanges>
+            <ClaimsExchange Id="SignUpWithLogonEmailExchange" TechnicalProfileReferenceId="LocalAccountSignUpWithLogonEmail" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <!-- This step reads any user attributes that we may not have received when in the token. -->
+        <OrchestrationStep Order="3" Type="ClaimsExchange">
+          <ClaimsExchanges>
+            <ClaimsExchange Id="AADUserReadWithObjectId" TechnicalProfileReferenceId="AAD-UserReadUsingObjectId" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <!-- NOTE: Change the Order attribute accordingly, adjusting other orchestration steps in your user journey as necessary -->
+
+        <!-- A. Call Authsignal's OIDC init auth endpoint to generate a short lived token representing the user.
+        This is a prerequisite before federating the flows to Authsignal via the OIDC Authorize technical profile in the step below  -->
+        <OrchestrationStep Order="4" Type="ClaimsExchange">
+            <ClaimsExchanges>
+                <ClaimsExchange Id="AuthsignalOidcInitAuth" TechnicalProfileReferenceId="authsignalOidcInitAuth"/>
+            </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <!-- B. Feed the token returned by the init auth endpoint to Authsignal's OIDC authorize endpoint -->
+        <OrchestrationStep Order="5" Type="ClaimsExchange">
+            <ClaimsExchanges>
+                <ClaimsExchange Id="AuthsignalOidcAuth" TechnicalProfileReferenceId="authsignalOidcAuth"/>
+            </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <OrchestrationStep Order="6" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
+
+      </OrchestrationSteps>
+      <ClientDefinition ReferenceId="DefaultWeb" />
+    </UserJourney>
+	</UserJourneys>
+
+</TrustFrameworkPolicy>
