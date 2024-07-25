@@ -4,9 +4,9 @@
   xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   xmlns="http://schemas.microsoft.com/online/cpim/schemas/2013/06"
   PolicySchemaVersion="0.3.0.0"
-  TenantId="authsignalb2c.onmicrosoft.com"
+  TenantId="{Settings:Tenant}"
   PolicyId="B2C_1A_TrustFrameworkBase"
-  PublicPolicyUri="http://authsignalb2c.onmicrosoft.com/B2C_1A_TrustFrameworkBase"
+  PublicPolicyUri="http://{Settings:Tenant}/B2C_1A_TrustFrameworkBase"
   DeploymentMode="Development">
 
   <BuildingBlocks>

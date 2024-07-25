@@ -4,19 +4,21 @@
   xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
   xmlns="http://schemas.microsoft.com/online/cpim/schemas/2013/06" 
   PolicySchemaVersion="0.3.0.0" 
-  TenantId="authsignalb2c.onmicrosoft.com" 
+  TenantId="{Settings:Tenant}" 
   PolicyId="B2C_1A_TrustFrameworkExtensions" 
-  PublicPolicyUri="http://authsignalb2c.onmicrosoft.com/B2C_1A_TrustFrameworkExtensions"
+  PublicPolicyUri="http://{Settings:Tenant}/B2C_1A_TrustFrameworkExtensions"
   DeploymentMode="Development">
   
   <BasePolicy>
-    <TenantId>authsignalb2c.onmicrosoft.com</TenantId>
+    <TenantId>{Settings:Tenant}</TenantId>
     <PolicyId>B2C_1A_TrustFrameworkLocalization</PolicyId>
   </BasePolicy>
 
   <BuildingBlocks>
 
     <ClaimsSchema>
+
+      <!-- AUTHSIGNAL CLAIMS START HERE -->
 
       <ClaimType Id="requestBody">
         <DisplayName>requestBody</DisplayName>
@@ -29,20 +31,43 @@
       </ClaimType>
 
       <ClaimType Id="actionCode">
-          <DisplayName>actionCode</DisplayName>
-          <DataType>string</DataType>
+        <DisplayName>actionCode</DisplayName>
+        <DataType>string</DataType>
       </ClaimType>
 
       <ClaimType Id="actionState">
-          <DisplayName>actionState</DisplayName>
-          <DataType>string</DataType>
+        <DisplayName>actionState</DisplayName>
+        <DataType>string</DataType>
       </ClaimType>
+
+      <ClaimType Id="isMatchingUserId">
+        <DataType>boolean</DataType>
+      </ClaimType>
+
+      <ClaimType Id="isChallengeSuccessful">
+        <DisplayName>isChallengeSuccessful</DisplayName>
+        <DataType>string</DataType>
+      </ClaimType>
+
+      <ClaimType Id="authsignalUserId">
+        <DataType>string</DataType>
+      </ClaimType>
+
+      <ClaimType Id="errorMessage">
+        <DisplayName>Challenge failed</DisplayName>
+        <DataType>string</DataType>
+        <UserInputType>Paragraph</UserInputType>
+      </ClaimType>
+
+      <!-- AUTHSIGNAL CLAIMS END HERE -->
 
     </ClaimsSchema>
 
     <ClaimsTransformations>
 
-      <ClaimsTransformation Id="authsignalInitAuthRequestBody" TransformationMethod="GenerateJson">
+      <!-- AUTHSIGNAL CLAIMS TRANSFORMATIONS START HERE -->
+
+      <ClaimsTransformation Id="AuthsignalCreateInitAuthRequestBody" TransformationMethod="GenerateJson">
         <InputClaims>
             <InputClaim ClaimTypeReferenceId="objectId" TransformationClaimType="userId" />
         </InputClaims>
@@ -56,6 +81,38 @@
         </OutputClaims>
       </ClaimsTransformation>
 
+      <ClaimsTransformation Id="AuthsignalCheckMatchingUserId" TransformationMethod="CompareClaims">
+        <InputClaims>
+          <InputClaim ClaimTypeReferenceId="objectId" TransformationClaimType="inputClaim1" />
+          <InputClaim ClaimTypeReferenceId="authsignalUserId" TransformationClaimType="inputClaim2" />
+        </InputClaims>
+        <InputParameters>
+          <InputParameter Id="operator" DataType="string" Value="EQUAL" />
+          <InputParameter Id="ignoreCase" DataType="string" Value="true" />
+        </InputParameters>
+        <OutputClaims>
+          <OutputClaim ClaimTypeReferenceId="isMatchingUserId" TransformationClaimType="outputClaim" />
+        </OutputClaims>
+      </ClaimsTransformation>
+
+      <ClaimsTransformation Id="AuthsignalCheckIsChallengeSuccessful" TransformationMethod="LookupValue">
+        <InputClaims>
+          <InputClaim ClaimTypeReferenceId="actionState" TransformationClaimType="inputParameterId" />
+        </InputClaims>
+        <InputParameters>
+          <InputParameter Id="ALLOW" DataType="string" Value="true" />
+          <InputParameter Id="CHALLENGE_SUCCEEDED" DataType="string" Value="true" />
+          <InputParameter Id="CHALLENGE_FAILED" DataType="string" Value="false" />
+          <InputParameter Id="BLOCK" DataType="string" Value="false" />
+          <InputParameter Id="errorOnFailedLookup" DataType="boolean" Value="false" />
+        </InputParameters>
+        <OutputClaims>
+          <OutputClaim ClaimTypeReferenceId="isChallengeSuccessful" TransformationClaimType="outputClaim" />
+        </OutputClaims>
+      </ClaimsTransformation>
+
+      <!-- AUTHSIGNAL CLAIMS TRANSFORMATIONS END HERE -->
+
     </ClaimsTransformations>
 
   </BuildingBlocks>
@@ -68,17 +125,19 @@
 
          <TechnicalProfile Id="login-NonInteractive">
           <Metadata>
-            <Item Key="client_id">d3c8578f-2b9a-490d-8d41-c252d61b11c9</Item>
-            <Item Key="IdTokenAudience">546a6f22-a2af-4eda-a4ef-4160a0198737</Item>
+            <Item Key="client_id">{Settings:ProxyIdentityExperienceFrameworkAppId}</Item>
+            <Item Key="IdTokenAudience">{Settings:IdentityExperienceFrameworkAppId}</Item>
           </Metadata>
           <InputClaims>
-            <InputClaim ClaimTypeReferenceId="client_id" DefaultValue="d3c8578f-2b9a-490d-8d41-c252d61b11c9" />
-            <InputClaim ClaimTypeReferenceId="resource_id" PartnerClaimType="resource" DefaultValue="546a6f22-a2af-4eda-a4ef-4160a0198737" />
+            <InputClaim ClaimTypeReferenceId="client_id" DefaultValue="{Settings:ProxyIdentityExperienceFrameworkAppId}" />
+            <InputClaim ClaimTypeReferenceId="resource_id" PartnerClaimType="resource" DefaultValue="{Settings:IdentityExperienceFrameworkAppId}" />
           </InputClaims>
         </TechnicalProfile>
 
-        <TechnicalProfile Id="REST-Authsignal-Connect-API">
-          <DisplayName>Authsignal Connect API</DisplayName>
+        <!-- AUTHSIGNAL TECHNICAL PROFILES START HERE -->
+
+        <TechnicalProfile Id="AuthsignalConnectApiBase">
+          <DisplayName>Authsignal Connect API Base</DisplayName>
           <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.RestfulProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
           <Metadata>
               <Item Key="SendClaimsIn">Body</Item>
@@ -97,15 +156,15 @@
           </InputClaims>
         </TechnicalProfile>
 
-        <TechnicalProfile Id="authsignalOidcInitAuth">
+        <TechnicalProfile Id="AuthsignalOidcInitAuth">
           <DisplayName>Authsignal OIDC Init Auth API</DisplayName>
           <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.RestfulProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"/>
           <!-- NOTE: Change the host name below -->
           <Metadata>
-              <Item Key="ServiceUrl">https://eu-connect.authsignal.com/init-auth</Item>
+              <Item Key="ServiceUrl">{Settings:AuthsignalHostname}/init-auth</Item>
           </Metadata>
           <InputClaimsTransformations>
-              <InputClaimsTransformation ReferenceId="authsignalInitAuthRequestBody"/>
+              <InputClaimsTransformation ReferenceId="AuthsignalCreateInitAuthRequestBody"/>
           </InputClaimsTransformations>
           <InputClaims>
               <InputClaim ClaimTypeReferenceId="requestBody"/>
@@ -113,18 +172,18 @@
           <OutputClaims>
               <OutputClaim ClaimTypeReferenceId="bearerToken" PartnerClaimType="token"/>
           </OutputClaims>
-          <IncludeTechnicalProfile ReferenceId="REST-Authsignal-Connect-API"/>
+          <IncludeTechnicalProfile ReferenceId="AuthsignalConnectApiBase"/>
         </TechnicalProfile>
 
-        <TechnicalProfile Id="authsignalOidcAuth">
+        <TechnicalProfile Id="AuthsignalOidcAuth">
           <DisplayName>Authsignal OIDC Authorize API</DisplayName>
           <Protocol Name="OpenIdConnect" />
           <Metadata>
               <!-- NOTE: Change the host name and tenant id below -->
-              <Item Key="METADATA">https://eu-connect.authsignal.com/oidc/.well-known/openid-configuration</Item>
-              <Item Key="client_id">b38cfd4b-8a72-4fb9-8320-7fc78426f608</Item>
-              <Item Key="authorization_endpoint">https://eu-connect.authsignal.com/oidc/auth</Item>
-              <Item Key="AccessTokenEndpoint">https://eu-connect.authsignal.com/oidc/token</Item>
+              <Item Key="METADATA">{Settings:AuthsignalHostname}/oidc/.well-known/openid-configuration</Item>
+              <Item Key="client_id">{Settings:AuthsignalTenantId}</Item>
+              <Item Key="authorization_endpoint">{Settings:AuthsignalHostname}/oidc/auth</Item>
+              <Item Key="AccessTokenEndpoint">{Settings:AuthsignalHostname}/oidc/token</Item>
               <Item Key="response_types">code</Item>
               <Item Key="scope">openid</Item>
               <Item Key="HttpBinding">POST</Item>
@@ -143,10 +202,32 @@
           <OutputClaims>
               <OutputClaim ClaimTypeReferenceId="actionCode" PartnerClaimType="action_code" />
               <OutputClaim ClaimTypeReferenceId="actionState" PartnerClaimType="action_state" />
+              <OutputClaim ClaimTypeReferenceId="authsignalUserId" PartnerClaimType="sub" />
           </OutputClaims>
+          <OutputClaimsTransformations>
+            <OutputClaimsTransformation ReferenceId="AuthsignalCheckIsChallengeSuccessful" />
+            <OutputClaimsTransformation ReferenceId="AuthsignalCheckMatchingUserId" />
+          </OutputClaimsTransformations>
         </TechnicalProfile>
 
+        <TechnicalProfile Id="SelfAsserted-Error">
+          <DisplayName>Error message</DisplayName>
+          <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.SelfAssertedAttributeProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"/>
+          <Metadata>
+            <Item Key="ContentDefinitionReferenceId">api.selfasserted</Item>
+            <Item Key="setting.showContinueButton">false</Item>
+            <Item Key="setting.showCancelButton">true</Item>
+          </Metadata>
+          <InputClaims>
+            <InputClaim ClaimTypeReferenceId="errorMessage"/>
+          </InputClaims>
+          <OutputClaims>
+            <OutputClaim ClaimTypeReferenceId="errorMessage"/>
+          </OutputClaims>
+        </TechnicalProfile>
       </TechnicalProfiles>
+
+      <!-- AUTHSIGNAL TECHNICAL PROFILES END HERE -->
       
     </ClaimsProvider>
   </ClaimsProviders>
@@ -182,6 +263,7 @@
           </ClaimsExchanges>
         </OrchestrationStep>
 
+        <!-- AUTHSIGNAL USER JOURNEY STEPS START HERE -->
         <!-- NOTE: Change the Order attribute accordingly, adjusting other orchestration steps in your user journey as necessary -->
 
         <!-- A. Call Authsignal's OIDC init auth endpoint to generate a short lived token representing the user.
@@ -195,11 +277,41 @@
         <!-- B. Feed the token returned by the init auth endpoint to Authsignal's OIDC authorize endpoint -->
         <OrchestrationStep Order="5" Type="ClaimsExchange">
             <ClaimsExchanges>
-                <ClaimsExchange Id="AuthsignalOidcAuth" TechnicalProfileReferenceId="authsignalOidcAuth"/>
+                <ClaimsExchange Id="AuthsignalOidcAuth" TechnicalProfileReferenceId="AuthsignalOidcAuth"/>
             </ClaimsExchanges>
         </OrchestrationStep>
 
-        <OrchestrationStep Order="6" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
+        <!-- C. Defensively check that the id token sub (aka the Authsignal userId) matches the objectId we are currently processing -->
+        <OrchestrationStep Order="6" Type="ClaimsExchange">
+          <Preconditions>
+            <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+              <Value>isMatchingUserId</Value>
+              <Value>True</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
+          </Preconditions>
+          <ClaimsExchanges>
+            <ClaimsExchange Id="ShowUserIdMismatchErrorPage" TechnicalProfileReferenceId="SelfAsserted-Error" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <!-- D. Check that the authentication challenge has been successful -->
+        <OrchestrationStep Order="7" Type="ClaimsExchange">
+          <Preconditions>
+            <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+              <Value>isChallengeSuccessful</Value>
+              <Value>true</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
+          </Preconditions>
+          <ClaimsExchanges>
+            <ClaimsExchange Id="ShowChallengeFailedPage" TechnicalProfileReferenceId="SelfAsserted-Error" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <!-- AUTHSIGNAL USER JOURNEY STEPS END HERE -->
+
+        <OrchestrationStep Order="8" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
 
       </OrchestrationSteps>
       <ClientDefinition ReferenceId="DefaultWeb" />
