@@ -667,6 +667,7 @@
           <Metadata>
             <Item Key="IpAddressClaimReferenceId">IpAddress</Item>
             <Item Key="ContentDefinitionReferenceId">api.localaccountsignup</Item>
+            <Item Key="EnforceEmailVerification">false</Item>
           </Metadata>
           <CryptographicKeys>
             <Key Id="issuer_secret" StorageReferenceId="B2C_1A_TokenSigningKeyContainer" />

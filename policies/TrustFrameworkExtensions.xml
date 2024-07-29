@@ -45,7 +45,6 @@
       </ClaimType>
 
       <ClaimType Id="isChallengeSuccessful">
-        <DisplayName>isChallengeSuccessful</DisplayName>
         <DataType>string</DataType>
       </ClaimType>
 
@@ -70,6 +69,7 @@
       <ClaimsTransformation Id="AuthsignalCreateInitAuthRequestBody" TransformationMethod="GenerateJson">
         <InputClaims>
             <InputClaim ClaimTypeReferenceId="objectId" TransformationClaimType="userId" />
+            <InputClaim ClaimTypeReferenceId="signInNames.emailAddress" TransformationClaimType="email" />
         </InputClaims>
         <InputParameters>
             <!-- NOTE: Change the action value here to the corresponding Authsignal action your user is performing. This may be signIn, signUp, manageSettings etc. -->
@@ -157,7 +157,7 @@
         </TechnicalProfile>
 
         <TechnicalProfile Id="AuthsignalOidcInitAuth">
-          <DisplayName>Authsignal OIDC Init Auth API</DisplayName>
+           <DisplayName>Authsignal OIDC Init Auth API</DisplayName>
           <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.RestfulProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"/>
           <!-- NOTE: Change the host name below -->
           <Metadata>
@@ -270,7 +270,7 @@
         This is a prerequisite before federating the flows to Authsignal via the OIDC Authorize technical profile in the step below  -->
         <OrchestrationStep Order="4" Type="ClaimsExchange">
             <ClaimsExchanges>
-                <ClaimsExchange Id="AuthsignalOidcInitAuth" TechnicalProfileReferenceId="authsignalOidcInitAuth"/>
+                <ClaimsExchange Id="AuthsignalOidcInitAuth" TechnicalProfileReferenceId="AuthsignalOidcInitAuth"/>
             </ClaimsExchanges>
         </OrchestrationStep>
 
