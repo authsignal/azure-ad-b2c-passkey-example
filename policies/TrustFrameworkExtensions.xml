@@ -78,6 +78,7 @@
         <InputParameters>
             <!-- NOTE: Change the action value here to the corresponding Authsignal action your user is performing. This may be signIn, signUp, manageSettings etc. -->
             <InputParameter Id="action" DataType="string" Value="signIn" />
+            <InputParameter Id="forceEnrollment" DataType="boolean" Value="true" />
             <InputParameter Id="redirectToSettings" DataType="boolean" Value="false" />
         </InputParameters>
         <OutputClaims>
