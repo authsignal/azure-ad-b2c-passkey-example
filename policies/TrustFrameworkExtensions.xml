@@ -52,6 +52,10 @@
         <DataType>string</DataType>
       </ClaimType>
 
+      <ClaimType Id="authsignalEnrolled">
+        <DataType>string</DataType>
+      </ClaimType>
+
       <ClaimType Id="errorMessage">
         <DisplayName>Challenge failed</DisplayName>
         <DataType>string</DataType>
@@ -203,6 +207,7 @@
               <OutputClaim ClaimTypeReferenceId="actionCode" PartnerClaimType="action_code" />
               <OutputClaim ClaimTypeReferenceId="actionState" PartnerClaimType="action_state" />
               <OutputClaim ClaimTypeReferenceId="authsignalUserId" PartnerClaimType="sub" />
+              <OutputClaim ClaimTypeReferenceId="authsignalEnrolled" PartnerClaimType="is_enrolled" />
           </OutputClaims>
           <OutputClaimsTransformations>
             <OutputClaimsTransformation ReferenceId="AuthsignalCheckIsChallengeSuccessful" />
@@ -309,9 +314,23 @@
           </ClaimsExchanges>
         </OrchestrationStep>
 
+        <!-- E. Check that the user has enrolled an authenticator -->
+        <OrchestrationStep Order="8" Type="ClaimsExchange">
+          <Preconditions>
+            <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+              <Value>authsignalEnrolled</Value>
+              <Value>true</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
+          </Preconditions>
+          <ClaimsExchanges>
+            <ClaimsExchange Id="ShowUserAuthenticatorNotEnrolledErrorPage" TechnicalProfileReferenceId="SelfAsserted-Error" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
         <!-- AUTHSIGNAL USER JOURNEY STEPS END HERE -->
 
-        <OrchestrationStep Order="8" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
+        <OrchestrationStep Order="9" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="JwtIssuer" />
 
       </OrchestrationSteps>
       <ClientDefinition ReferenceId="DefaultWeb" />
