@@ -53,11 +53,11 @@
       </ClaimType>
 
       <ClaimType Id="authsignalEnrolled">
-        <DataType>string</DataType>
+        <DataType>boolean</DataType>
       </ClaimType>
 
       <ClaimType Id="errorMessage">
-        <DisplayName>Challenge failed</DisplayName>
+        <DisplayName></DisplayName>
         <DataType>string</DataType>
         <UserInputType>Paragraph</UserInputType>
       </ClaimType>
@@ -215,19 +215,35 @@
           </OutputClaimsTransformations>
         </TechnicalProfile>
 
-        <TechnicalProfile Id="SelfAsserted-Error">
-          <DisplayName>Error message</DisplayName>
+        <TechnicalProfile Id="SelfAsserted-NotEnrolledError">
+          <DisplayName>Not enrolled error</DisplayName>
           <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.SelfAssertedAttributeProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"/>
           <Metadata>
             <Item Key="ContentDefinitionReferenceId">api.selfasserted</Item>
             <Item Key="setting.showContinueButton">false</Item>
-            <Item Key="setting.showCancelButton">true</Item>
+            <Item Key="setting.showCancelButton">false</Item>
           </Metadata>
           <InputClaims>
-            <InputClaim ClaimTypeReferenceId="errorMessage"/>
+            <InputClaim ClaimTypeReferenceId="errorMessage" DefaultValue="You must register an authentication method to continue."/>
           </InputClaims>
           <OutputClaims>
-            <OutputClaim ClaimTypeReferenceId="errorMessage"/>
+            <OutputClaim ClaimTypeReferenceId="errorMessage" Required="true"/>
+          </OutputClaims>
+        </TechnicalProfile>
+
+        <TechnicalProfile Id="SelfAsserted-AuthenticationError">
+          <DisplayName>Authentication failed</DisplayName>
+          <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.SelfAssertedAttributeProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"/>
+          <Metadata>
+            <Item Key="ContentDefinitionReferenceId">api.selfasserted</Item>
+            <Item Key="setting.showContinueButton">false</Item>
+            <Item Key="setting.showCancelButton">false</Item>
+          </Metadata>
+          <InputClaims>
+            <InputClaim ClaimTypeReferenceId="errorMessage" DefaultValue="Authentication challenge failed. Please try again."/>
+          </InputClaims>
+          <OutputClaims>
+            <OutputClaim ClaimTypeReferenceId="errorMessage" Required="true"/>
           </OutputClaims>
         </TechnicalProfile>
       </TechnicalProfiles>
@@ -296,7 +312,7 @@
             </Precondition>
           </Preconditions>
           <ClaimsExchanges>
-            <ClaimsExchange Id="ShowUserIdMismatchErrorPage" TechnicalProfileReferenceId="SelfAsserted-Error" />
+            <ClaimsExchange Id="ShowUserIdMismatchErrorPage" TechnicalProfileReferenceId="SelfAsserted-AuthenticationError" />
           </ClaimsExchanges>
         </OrchestrationStep>
 
@@ -310,7 +326,7 @@
             </Precondition>
           </Preconditions>
           <ClaimsExchanges>
-            <ClaimsExchange Id="ShowChallengeFailedPage" TechnicalProfileReferenceId="SelfAsserted-Error" />
+            <ClaimsExchange Id="ShowChallengeFailedPage" TechnicalProfileReferenceId="SelfAsserted-AuthenticationError" />
           </ClaimsExchanges>
         </OrchestrationStep>
 
@@ -324,7 +340,7 @@
             </Precondition>
           </Preconditions>
           <ClaimsExchanges>
-            <ClaimsExchange Id="ShowUserAuthenticatorNotEnrolledErrorPage" TechnicalProfileReferenceId="SelfAsserted-Error" />
+            <ClaimsExchange Id="ShowUserAuthenticatorNotEnrolledErrorPage" TechnicalProfileReferenceId="SelfAsserted-NotEnrolledError" />
           </ClaimsExchanges>
         </OrchestrationStep>
 
