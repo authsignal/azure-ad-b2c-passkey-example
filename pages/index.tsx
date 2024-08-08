@@ -14,7 +14,7 @@ export default function HomePage() {
   return (
     <main>
       <section>
-        <h1>Azure AD B2C MFA Demo App</h1>
+        <h1>Azure AD B2C Passwordless Demo App</h1>
         {session?.user ? (
           <>
             <div>Signed in as: {session.user.name}</div>

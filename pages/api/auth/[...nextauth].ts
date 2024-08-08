@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 
 const tenantId = process.env.AZURE_AD_B2C_TENANT_NAME!;
 
-const policy = "B2C_1A_SIGNUP_SIGNIN";
+const policy = "B2C_1A_SIGNUP_SIGNIN_PASSWORDLESS";
 
 const issuer = `https://${tenantId}.b2clogin.com/${tenantId}.onmicrosoft.com/v2.0`;
 
