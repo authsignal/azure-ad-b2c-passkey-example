@@ -5,18 +5,18 @@
   xmlns="http://schemas.microsoft.com/online/cpim/schemas/2013/06"
   PolicySchemaVersion="0.3.0.0"
   TenantId="{Settings:Tenant}"
-  PolicyId="B2C_1A_signup_signin_passwordless"
-  PublicPolicyUri="http://{Settings:Tenant}/B2C_1A_signup_signin_passwordless"
+  PolicyId="B2C_1A_signup_signin_passkey"
+  PublicPolicyUri="http://{Settings:Tenant}/B2C_1A_signup_signin_passkey"
   DeploymentMode="Development"
   UserJourneyRecorderEndpoint="urn:journeyrecorder:applicationinsights">
 
   <BasePolicy>
     <TenantId>{Settings:Tenant}</TenantId>
-    <PolicyId>B2C_1A_TrustFrameworkExtensions_Passwordless</PolicyId>
+    <PolicyId>B2C_1A_TrustFrameworkExtensions_Passkey</PolicyId>
   </BasePolicy>
 
   <RelyingParty>
-    <DefaultUserJourney ReferenceId="AuthsignalSignUpOrSignIn_Passwordless" />
+    <DefaultUserJourney ReferenceId="AuthsignalSignUpOrSignIn_Passkey" />
     <Endpoints>
       <!--points to refresh token journey when app makes refresh token request-->
       <Endpoint Id="Token" UserJourneyReferenceId="RedeemRefreshToken" />
@@ -24,6 +24,7 @@
       
     <UserJourneyBehaviors>
       <JourneyInsights TelemetryEngine="ApplicationInsights" InstrumentationKey="{Settings:AppInsightsInstrumentationKey}" DeveloperMode="true" ClientEnabled="true" ServerEnabled="true" TelemetryVersion="1.0.0" />
+      <ScriptExecution>Allow</ScriptExecution>
     </UserJourneyBehaviors>
 
     <TechnicalProfile Id="PolicyProfile">

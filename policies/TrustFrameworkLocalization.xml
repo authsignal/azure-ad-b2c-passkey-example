@@ -24,6 +24,13 @@
         </LocalizedResourcesReferences>
       </ContentDefinition>
 
+      <ContentDefinition Id="api.signuporsignin.passkey">
+        <LocalizedResourcesReferences MergeBehavior="Prepend">
+          <LocalizedResourcesReference Language="en" LocalizedResourcesReferenceId="api.signuporsignin.en" />
+          <!-- Add more languages here -->
+        </LocalizedResourcesReferences>
+      </ContentDefinition>
+
       <ContentDefinition Id="api.localaccountsignup">
         <LocalizedResourcesReferences MergeBehavior="Prepend">
           <LocalizedResourcesReference Language="en" LocalizedResourcesReferenceId="api.localaccountsignup.en" />

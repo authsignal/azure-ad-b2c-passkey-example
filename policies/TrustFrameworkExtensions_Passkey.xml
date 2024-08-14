@@ -5,8 +5,8 @@
   xmlns="http://schemas.microsoft.com/online/cpim/schemas/2013/06" 
   PolicySchemaVersion="0.3.0.0" 
   TenantId="{Settings:Tenant}" 
-  PolicyId="B2C_1A_TrustFrameworkExtensions_Passwordless" 
-  PublicPolicyUri="http://{Settings:Tenant}/B2C_1A_TrustFrameworkExtensions_Passwordless"
+  PolicyId="B2C_1A_TrustFrameworkExtensions_Passkey" 
+  PublicPolicyUri="http://{Settings:Tenant}/B2C_1A_TrustFrameworkExtensions_Passkey"
   DeploymentMode="Development">
   
   <BasePolicy>
@@ -62,6 +62,22 @@
         <UserInputType>Paragraph</UserInputType>
       </ClaimType>
 
+      <!-- PASSKEY RELATED CLAIMS SCHEMA START HERE -->
+
+      <ClaimType Id="isPasskeyChallengeSuccessful">
+        <DataType>boolean</DataType>
+      </ClaimType>
+
+      <ClaimType Id="isPasskeyAutofill">
+        <DataType>boolean</DataType>
+      </ClaimType>
+
+      <ClaimType Id="passkeyToken">
+        <DataType>string</DataType>
+      </ClaimType>
+
+      <!-- PASSKEY RELATED CLAIMS SCHEMA END HERE -->
+
       <!-- AUTHSIGNAL CLAIMS END HERE -->
 
     </ClaimsSchema>
@@ -77,7 +93,7 @@
         </InputClaims>
         <InputParameters>
             <!-- NOTE: Change the action value here to the corresponding Authsignal action your user is performing. This may be signIn, signUp, manageSettings etc. -->
-            <InputParameter Id="action" DataType="string" Value="signIn" />
+            <InputParameter Id="action" DataType="string" Value="signInWithPasskey" />
             <InputParameter Id="forceEnrollment" DataType="boolean" Value="true" />
             <InputParameter Id="redirectToSettings" DataType="boolean" Value="false" />
         </InputParameters>
@@ -116,6 +132,48 @@
         </OutputClaims>
       </ClaimsTransformation>
 
+      <!-- PASSKEY RELATED CLAIMS TRANSFORMATIONS START HERE -->
+
+      <ClaimsTransformation Id="AuthsignalCreateValidateChallengeRequestBody" TransformationMethod="GenerateJson">
+        <InputClaims>
+            <InputClaim ClaimTypeReferenceId="passkeyToken" TransformationClaimType="token" />
+        </InputClaims>
+        <InputParameters>
+            <InputParameter Id="action" DataType="string" Value="passkey-verify" />
+        </InputParameters>
+        <OutputClaims>
+            <OutputClaim ClaimTypeReferenceId="requestBody" TransformationClaimType="outputClaim" />
+        </OutputClaims>
+      </ClaimsTransformation>
+
+      <ClaimsTransformation Id="CheckIsPasskeyAutofillToken" TransformationMethod="StringContains">
+        <InputClaims>
+          <InputClaim ClaimTypeReferenceId="password" TransformationClaimType="inputClaim" />
+        </InputClaims>
+        <InputParameters>
+          <InputParameter Id="contains" DataType="string" Value="token-" />
+          <InputParameter Id="ignoreCase" DataType="string" Value="true" />
+        </InputParameters>
+        <OutputClaims>
+          <OutputClaim ClaimTypeReferenceId="isPasskeyAutofill" TransformationClaimType="outputClaim" />
+        </OutputClaims>
+      </ClaimsTransformation>
+
+      <ClaimsTransformation Id="ExtractPasskeyToken" TransformationMethod="StringReplace">
+        <InputClaims>
+          <InputClaim ClaimTypeReferenceId="password" TransformationClaimType="inputClaim" />
+        </InputClaims>
+        <InputParameters>
+          <InputParameter Id="oldValue" DataType="string" Value="token-" />
+          <InputParameter Id="newValue" DataType="string" Value="" />
+        </InputParameters>
+        <OutputClaims>
+          <OutputClaim ClaimTypeReferenceId="passkeyToken" TransformationClaimType="outputClaim" />
+        </OutputClaims>
+      </ClaimsTransformation>
+
+      <!-- PASSKEY RELATED CLAIMS TRANSFORMATIONS END HERE -->
+
       <!-- AUTHSIGNAL CLAIMS TRANSFORMATIONS END HERE -->
 
     </ClaimsTransformations>
@@ -153,7 +211,9 @@
           <IncludeTechnicalProfile ReferenceId="AAD-Common" />
         </TechnicalProfile>
 
-        <TechnicalProfile Id="SelfAsserted-LocalAccountSignin-Email_Passwordless">
+        <!-- PASSKEY RELATED TECHNICAL PROFILES START HERE -->
+
+        <TechnicalProfile Id="SelfAsserted-LocalAccountSignin-Email_Passkey">
           <DisplayName>Local Account Signin</DisplayName>
           <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.SelfAssertedAttributeProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
           <Metadata>
@@ -168,14 +228,79 @@
           </InputClaims>
           <OutputClaims>
             <OutputClaim ClaimTypeReferenceId="signInName" Required="true" />
+            <!-- NOTE: We add the password output claim back, but hidden - this is used to transmit the passkey token from the signin page -->
+            <OutputClaim ClaimTypeReferenceId="password" Required="true" />
             <OutputClaim ClaimTypeReferenceId="objectId" />
             <OutputClaim ClaimTypeReferenceId="authenticationSource" />
+            <OutputClaim ClaimTypeReferenceId="isPasskeyAutofill" />
+            <OutputClaim ClaimTypeReferenceId="isPasskeyChallengeSuccessful" />
           </OutputClaims>
           <ValidationTechnicalProfiles>
-            <ValidationTechnicalProfile ReferenceId="AAD-UserReadUsingEmailAddress_Passwordless" />
+            <ValidationTechnicalProfile ReferenceId="CheckIsPasskeyAutofill" />
+            <ValidationTechnicalProfile ReferenceId="ValidatePasskeyChallenge">
+              <Preconditions>
+                <Precondition Type="ClaimsExist" ExecuteActionsIf="false">
+                  <Value>isPasskeyAutofill</Value>
+                  <Action>SkipThisValidationTechnicalProfile</Action>
+                </Precondition>
+                <Precondition Type="ClaimEquals" ExecuteActionsIf="false">
+                  <Value>isPasskeyAutofill</Value>
+                  <Value>True</Value>
+                  <Action>SkipThisValidationTechnicalProfile</Action>
+                </Precondition>
+                <Precondition Type="ClaimsExist" ExecuteActionsIf="false">
+                  <Value>passkeyToken</Value>
+                  <Action>SkipThisValidationTechnicalProfile</Action>
+                </Precondition>
+              </Preconditions>
+            </ValidationTechnicalProfile>
+            <ValidationTechnicalProfile ReferenceId="AAD-UserReadUsingEmailAddress_Passwordless">
+              <Preconditions>
+                <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+                  <Value>isPasskeyAutofill</Value>
+                  <Value>True</Value>
+                  <Action>SkipThisValidationTechnicalProfile</Action>
+                </Precondition>
+              </Preconditions>
+            </ValidationTechnicalProfile>
           </ValidationTechnicalProfiles>
           <UseTechnicalProfileForSessionManagement ReferenceId="SM-AAD" />
         </TechnicalProfile>
+
+        <TechnicalProfile Id="CheckIsPasskeyAutofill">
+          <DisplayName>Check is passkey autofill</DisplayName>
+          <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.ClaimsTransformationProtocolProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
+          <InputClaimsTransformations>
+            <InputClaimsTransformation ReferenceId="CheckIsPasskeyAutofillToken" />
+            <InputClaimsTransformation ReferenceId="ExtractPasskeyToken" />
+          </InputClaimsTransformations>
+          <OutputClaims>
+            <OutputClaim ClaimTypeReferenceId="isPasskeyAutofill" />
+            <OutputClaim ClaimTypeReferenceId="passkeyToken" />
+          </OutputClaims>
+        </TechnicalProfile>
+
+        <TechnicalProfile Id="ValidatePasskeyChallenge">
+           <DisplayName>Validate passkey challenge</DisplayName>
+          <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.RestfulProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"/>
+          <!-- NOTE: Change the url below - this is different to our connect endpoints used for oidc. Instead, it is our server api (https://docs.authsignal.com/api-reference/server-api/overview) -->
+          <Metadata>
+              <Item Key="ServiceUrl">{Settings:AuthsignalServerUrl}/validate</Item>
+          </Metadata>
+          <InputClaimsTransformations>
+              <InputClaimsTransformation ReferenceId="AuthsignalCreateValidateChallengeRequestBody"/>
+          </InputClaimsTransformations>
+          <InputClaims>
+              <InputClaim ClaimTypeReferenceId="requestBody"/>
+          </InputClaims>
+          <OutputClaims>
+              <OutputClaim ClaimTypeReferenceId="isPasskeyChallengeSuccessful" PartnerClaimType="isValid"/>
+              <OutputClaim ClaimTypeReferenceId="objectId" PartnerClaimType="userId"/>
+          </OutputClaims>
+          <IncludeTechnicalProfile ReferenceId="AuthsignalConnectApiBase"/>
+        </TechnicalProfile>
+
+        <!-- PASSKEY RELATED TECHNICAL PROFILES END HERE -->
 
         <TechnicalProfile Id="LocalAccountSignUpWithLogonEmail_Passwordless">
           <DisplayName>Email signup</DisplayName>
@@ -357,14 +482,14 @@
   </ClaimsProviders>
 
   <UserJourneys>
-    <UserJourney Id="AuthsignalSignUpOrSignIn_Passwordless">
+    <UserJourney Id="AuthsignalSignUpOrSignIn_Passkey">
       <OrchestrationSteps>
-        <OrchestrationStep Order="1" Type="CombinedSignInAndSignUp" ContentDefinitionReferenceId="api.signuporsignin">
+        <OrchestrationStep Order="1" Type="CombinedSignInAndSignUp" ContentDefinitionReferenceId="api.signuporsignin.passkey">
           <ClaimsProviderSelections>
             <ClaimsProviderSelection ValidationClaimsExchangeId="LocalAccountSigninEmailExchange" />
           </ClaimsProviderSelections>
           <ClaimsExchanges>
-            <ClaimsExchange Id="LocalAccountSigninEmailExchange" TechnicalProfileReferenceId="SelfAsserted-LocalAccountSignin-Email_Passwordless" />
+            <ClaimsExchange Id="LocalAccountSigninEmailExchange" TechnicalProfileReferenceId="SelfAsserted-LocalAccountSignin-Email_Passkey" />
           </ClaimsExchanges>
         </OrchestrationStep>
 
@@ -393,13 +518,27 @@
         <!-- A. Call Authsignal's OIDC init auth endpoint to generate a short lived token representing the user.
         This is a prerequisite before federating the flows to Authsignal via the OIDC Authorize technical profile in the step below  -->
         <OrchestrationStep Order="4" Type="ClaimsExchange">
-            <ClaimsExchanges>
-                <ClaimsExchange Id="AuthsignalOidcInitAuth" TechnicalProfileReferenceId="AuthsignalOidcInitAuth"/>
-            </ClaimsExchanges>
+          <Preconditions>
+            <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+              <Value>isPasskeyAutofill</Value>
+              <Value>True</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
+          </Preconditions>
+          <ClaimsExchanges>
+              <ClaimsExchange Id="AuthsignalOidcInitAuth" TechnicalProfileReferenceId="AuthsignalOidcInitAuth"/>
+          </ClaimsExchanges>
         </OrchestrationStep>
 
         <!-- B. Feed the token returned by the init auth endpoint to Authsignal's OIDC authorize endpoint -->
         <OrchestrationStep Order="5" Type="ClaimsExchange">
+          <Preconditions>
+            <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+              <Value>isPasskeyAutofill</Value>
+              <Value>True</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
+          </Preconditions>
             <ClaimsExchanges>
                 <ClaimsExchange Id="AuthsignalOidcAuth" TechnicalProfileReferenceId="AuthsignalOidcAuth"/>
             </ClaimsExchanges>
@@ -408,6 +547,11 @@
         <!-- C. Defensively check that the id token sub (aka the Authsignal userId) matches the objectId we are currently processing -->
         <OrchestrationStep Order="6" Type="ClaimsExchange">
           <Preconditions>
+            <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+              <Value>isPasskeyAutofill</Value>
+              <Value>True</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
             <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
               <Value>isMatchingUserId</Value>
               <Value>True</Value>
@@ -427,6 +571,11 @@
               <Value>true</Value>
               <Action>SkipThisOrchestrationStep</Action>
             </Precondition>
+            <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+              <Value>isPasskeyChallengeSuccessful</Value>
+              <Value>true</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
           </Preconditions>
           <ClaimsExchanges>
             <ClaimsExchange Id="ShowChallengeFailedPage" TechnicalProfileReferenceId="SelfAsserted-AuthenticationError" />
@@ -436,6 +585,11 @@
         <!-- E. Check that the user has enrolled an authenticator -->
         <OrchestrationStep Order="8" Type="ClaimsExchange">
           <Preconditions>
+            <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+              <Value>isPasskeyAutofill</Value>
+              <Value>True</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
             <Precondition Type="ClaimEquals" ExecuteActionsIf="true">
               <Value>authsignalEnrolled</Value>
               <Value>true</Value>
