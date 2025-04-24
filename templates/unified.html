@@ -1291,8 +1291,8 @@
             .signIn({ autofill: true })
             .then((response) => {
               if (response) {
-                signInInput.value = response.userName;
-                passwordInput.value = "token-" + response.token;
+                signInInput.value = response.data.username;
+                passwordInput.value = "token-" + response.data.token;
                 nextButton.click();
               }
             })
@@ -1306,7 +1306,7 @@
         var script = document.createElement("script");
         script.onload = setWebauthnAttribute;
         script.src =
-          "https://unpkg.com/@authsignal/browser@0.5.2/dist/index.min.js";
+          "https://unpkg.com/@authsignal/browser@1.5.0/dist/index.min.js";
         document.head.appendChild(script);
       }
 
