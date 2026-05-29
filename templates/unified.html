@@ -1288,7 +1288,7 @@
           passwordInput.value = "placeholder";
 
           client.passkey
-            .signIn({ autofill: true })
+            .signIn({ autofill: true, action: "signInWithPasskey" })
             .then((response) => {
               if (response) {
                 signInInput.value = response.data.username;
@@ -1306,7 +1306,7 @@
         var script = document.createElement("script");
         script.onload = setWebauthnAttribute;
         script.src =
-          "https://unpkg.com/@authsignal/browser@1.5.0/dist/index.min.js";
+          "https://unpkg.com/@authsignal/browser@1.17.0/dist/index.min.js";
         document.head.appendChild(script);
       }
 
