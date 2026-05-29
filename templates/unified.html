@@ -1288,7 +1288,7 @@
           passwordInput.value = "placeholder";
 
           client.passkey
-            .signIn({ autofill: true, action: "signInWithPasskey" })
+            .signIn({ autofill: true, action: "signInWithPasskey", useCookies: true })
             .then((response) => {
               if (response) {
                 signInInput.value = response.data.username;
