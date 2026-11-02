@@ -261,6 +261,9 @@
 
   <RelyingParty>
     <DefaultUserJourney ReferenceId="AuthsignalManageSecurity" />
+    <UserJourneyBehaviors>
+      <ScriptExecution>Allow</ScriptExecution>
+    </UserJourneyBehaviors>
     <TechnicalProfile Id="PolicyProfile">
       <DisplayName>PolicyProfile</DisplayName>
       <Protocol Name="OpenIdConnect" />
